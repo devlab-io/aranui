@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARANUI — Gantt des Features</title>
+    <style>
+        :root {
+            --bg: #f4f5f7;
+            --card: #ffffff;
+            --header-bg: #0f1b2d;
+            --text: #1a1a2e;
+            --text-secondary: #6b7280;
+            --text-light: #ffffff;
+            --lot0: #64748b;
+            --lot1: #3b82f6;
+            --lot2: #8b5cf6;
+            --lot3: #f59e0b;
+            --lot4: #10b981;
+            --lot5: #ef4444;
+            --lot6: #ec4899;
+            --today: #ef4444;
+            --milestone: #f59e0b;
+            --gap: 16px;
+            --radius: 10px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: var(--gap);
+        }
+
+        /* Header */
+        .header {
+            background: var(--header-bg);
+            color: var(--text-light);
+            padding: 24px 32px;
+            border-radius: var(--radius);
+            margin-bottom: var(--gap);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .header .subtitle {
+            font-size: 13px;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 20px;
+            background: transparent;
+            color: var(--text-light);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .filter-btn.active {
+            background: rgba(255,255,255,0.25);
+        }
+
+        /* KPI Row */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+
+        .kpi-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .kpi-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-size: 26px;
+            font-weight: 800;
+            margin-top: 4px;
+        }
+
+        .kpi-detail {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Gantt */
+        .gantt-wrapper {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            overflow: hidden;
+            margin-bottom: var(--gap);
+        }
+
+        .gantt-scroll {
+            overflow-x: auto;
+            padding: 0;
+        }
+
+        .gantt-table {
+            min-width: 1200px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .gantt-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #f8fafc;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 8px;
+            border-bottom: 2px solid #e5e7eb;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .gantt-table thead th:first-child,
+        .gantt-table thead th:nth-child(2) {
+            text-align: left;
+            padding-left: 16px;
+        }
+
+        .gantt-table thead th.month-header {
+            min-width: 70px;
+        }
+
+        .gantt-table thead th.month-header.current {
+            color: var(--today);
+            font-weight: 700;
+        }
+
+        .gantt-table tbody tr {
+            transition: background 0.15s;
+        }
+
+        .gantt-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .gantt-table tbody tr.lot-header {
+            background: #f1f5f9;
+        }
+
+        .gantt-table tbody tr.lot-header:hover {
+            background: #e8edf3;
+        }
+
+        .gantt-table tbody td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+            vertical-align: middle;
+            position: relative;
+        }
+
+        .gantt-table tbody td:first-child {
+            padding-left: 16px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .gantt-table tbody td:nth-child(2) {
+            padding-left: 16px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            max-width: 250px;
+        }
+
+        .gantt-table tbody tr.lot-header td:first-child {
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: -0.2px;
+        }
+
+        .gantt-table tbody tr.sub-task td:first-child {
+            padding-left: 32px;
+            font-weight: 500;
+        }
+
+        /* Gantt bars */
+        .bar-cell {
+            padding: 10px 2px !important;
+        }
+
+        .gantt-bar {
+            height: 24px;
+            border-radius: 6px;
+            width: 100%;
+            opacity: 0.85;
+            position: relative;
+            transition: opacity 0.2s, transform 0.15s;
+            cursor: pointer;
+        }
+
+        .gantt-bar:hover {
+            opacity: 1;
+            transform: scaleY(1.15);
+        }
+
+        .gantt-bar-half-start {
+            border-radius: 0 6px 6px 0;
+            width: 50%;
+            margin-left: 50%;
+        }
+
+        .gantt-bar-half-end {
+            border-radius: 6px 0 0 6px;
+            width: 50%;
+        }
+
+        .gantt-bar-full {
+            width: 100%;
+        }
+
+        /* Milestone diamond */
+        .milestone-cell {
+            text-align: center;
+        }
+
+        .milestone {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            background: var(--milestone);
+            transform: rotate(45deg);
+            border-radius: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        /* Today line */
+        .today-marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--today);
+            z-index: 5;
+            left: 20%;
+        }
+
+        .today-marker::before {
+            content: "Aujourd'hui";
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--today);
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Lot badges */
+        .lot-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            color: white;
+            margin-right: 6px;
+            letter-spacing: 0.3px;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 14px 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        .legend-diamond {
+            width: 10px;
+            height: 10px;
+            background: var(--milestone);
+            transform: rotate(45deg);
+            border-radius: 1px;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            display: none;
+            position: fixed;
+            background: var(--header-bg);
+            color: var(--text-light);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            max-width: 280px;
+            z-index: 1000;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            pointer-events: none;
+            line-height: 1.6;
+        }
+
+        .tooltip strong {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        /* Dependencies */
+        .dep-section {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .dep-section h3 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            color: var(--text);
+        }
+
+        .dep-flow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .dep-node {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .dep-arrow {
+            font-size: 20px;
+            color: var(--text-secondary);
+        }
+
+        /* Print */
+        @media print {
+            body { background: white; }
+            .filters, .filter-btn { display: none; }
+            .gantt-wrapper { box-shadow: none; border: 1px solid #e5e7eb; }
+            .header { background: #1a1a2e; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>ARANUI — Gantt des Features</h1>
+                <div class="subtitle">ERP Hotel Flottant &bull; Mars 2026 — Juin 2027</div>
+            </div>
+            <div class="filters">
+                <button class="filter-btn active" onclick="filterLot('all')">Tous les lots</button>
+                <button class="filter-btn" onclick="filterLot(0)">Phase 0</button>
+                <button class="filter-btn" onclick="filterLot(1)">Lot 1</button>
+                <button class="filter-btn" onclick="filterLot(2)">Lot 2</button>
+                <button class="filter-btn" onclick="filterLot(3)">Lot 3</button>
+                <button class="filter-btn" onclick="filterLot(4)">Lot 4</button>
+                <button class="filter-btn" onclick="filterLot(5)">Lot 5</button>
+                <button class="filter-btn" onclick="filterLot(6)">Lot 6</button>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-label">Duree totale</div>
+                <div class="kpi-value">16 mois</div>
+                <div class="kpi-detail">Mars 2026 → Juin 2027</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Lots</div>
+                <div class="kpi-value">6</div>
+                <div class="kpi-detail">+ Phase 0 cadrage</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Features</div>
+                <div class="kpi-value">28</div>
+                <div class="kpi-detail">Modules et sous-modules</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Jalons cles</div>
+                <div class="kpi-value">5</div>
+                <div class="kpi-detail">Livraisons en production</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Prochain jalon</div>
+                <div class="kpi-value" style="font-size:18px;">R2 Cadrage</div>
+                <div class="kpi-detail">Mars 2026</div>
+            </div>
+        </div>
+
+        <!-- Gantt Chart -->
+        <div class="gantt-wrapper">
+            <div class="gantt-scroll">
+                <table class="gantt-table" id="ganttTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;">Feature</th>
+                            <th style="min-width:180px;">Detail</th>
+                            <th class="month-header current">Mar 26</th>
+                            <th class="month-header">Avr 26</th>
+                            <th class="month-header">Mai 26</th>
+                            <th class="month-header">Jun 26</th>
+                            <th class="month-header">Jul 26</th>
+                            <th class="month-header">Aou 26</th>
+                            <th class="month-header">Sep 26</th>
+                            <th class="month-header">Oct 26</th>
+                            <th class="month-header">Nov 26</th>
+                            <th class="month-header">Dec 26</th>
+                            <th class="month-header">Jan 27</th>
+                            <th class="month-header">Fev 27</th>
+                            <th class="month-header">Mar 27</th>
+                            <th class="month-header">Avr 27</th>
+                            <th class="month-header">Mai 27</th>
+                            <th class="month-header">Jun 27</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ganttBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color" style="background:var(--lot0)"></div>Phase 0 — Cadrage</div>
+                <div class="legend-item"><div class="legend-color" style="background:var(--lot1)"></div>Lot 1 — Intranet Passagers</div>
+                <div class="legend-item"><div class="legend-color" style="background:var(--lot2)"></div>Lot 2 — Equipage</div>
+                <div class="legend-item"><div class="legend-color" style="background:var(--lot3)"></div>Lot 3 — Maintenance</div>
+                <div class="legend-item"><div class="legend-color" style="background:var(--lot4)"></div>Lot 4 — Bons de Commande</div>
+                <div class="legend-item"><div class="legend-color" style="background:var(--lot5)"></div>Lot 5 — Points de Vente</div>
+                <div class="legend-item"><div class="legend-color" style="background:var(--lot6)"></div>Lot 6 — Comptabilite</div>
+                <div class="legend-item"><div class="legend-diamond"></div>Jalon / Livraison</div>
+            </div>
+        </div>
+
+        <!-- Dependencies -->
+        <div class="dep-section">
+            <h3>Chaine de dependances</h3>
+            <div class="dep-flow">
+                <div class="dep-node" style="background:var(--lot0)">Phase 0<br>Cadrage</div>
+                <div class="dep-arrow">→</div>
+                <div class="dep-node" style="background:var(--lot1)">Lot 1<br>Intranet Passagers</div>
+                <div class="dep-arrow">→</div>
+                <div class="dep-node" style="background:var(--lot2)">Lot 2<br>Equipage</div>
+                <div class="dep-arrow">→</div>
+                <div class="dep-node" style="background:var(--lot3)">Lot 3<br>Maintenance</div>
+                <div class="dep-arrow">→</div>
+                <div class="dep-node" style="background:var(--lot4)">Lot 4<br>Bons de Commande</div>
+                <div class="dep-arrow">→</div>
+                <div class="dep-node" style="background:var(--lot5)">Lot 5<br>Points de Vente</div>
+                <div class="dep-arrow">→</div>
+                <div class="dep-node" style="background:var(--lot6)">Lot 6<br>Comptabilite</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // ─── DATA ───────────────────────────────────────────────
+        // months: 0=Mar26, 1=Avr26, ..., 15=Jun27
+        const LOTS = {
+            0: { name: 'Phase 0', color: 'var(--lot0)', label: 'P0' },
+            1: { name: 'Lot 1 — Intranet Passagers', color: 'var(--lot1)', label: 'P0' },
+            2: { name: 'Lot 2 — Gestion Equipage', color: 'var(--lot2)', label: 'P1' },
+            3: { name: 'Lot 3 — Maintenance / Ticketing', color: 'var(--lot3)', label: 'P1' },
+            4: { name: 'Lot 4 — Bons de Commande', color: 'var(--lot4)', label: 'P2' },
+            5: { name: 'Lot 5 — Points de Vente', color: 'var(--lot5)', label: 'P2' },
+            6: { name: 'Lot 6 — Comptabilite / Back-office', color: 'var(--lot6)', label: 'P3' },
+        };
+
+        const TASKS = [
+            // Phase 0
+            { lot: 0, name: 'Phase 0 — Cadrage & Architecture', detail: '', start: 0, end: 0, isHeader: true },
+            { lot: 0, name: 'R2 Validation PRD & Budget', detail: 'Validation client', start: 0, end: 0, milestone: true, milestoneMonth: 0 },
+            { lot: 0, name: 'Choix stack technique', detail: 'Architecture offline-first', start: 0, end: 0 },
+            { lot: 0, name: 'Maquettes / Wireframes Lot 1', detail: 'UX/UI passagers', start: 0, end: 0 },
+            { lot: 0, name: 'Specs protocoles', detail: 'Badges, HABITU, captive portal, XML', start: 0, end: 0 },
+            { lot: 0, name: 'Setup infra', detail: 'Serveur local + cloud + sync', start: 0, end: 0 },
+
+            // Lot 1
+            { lot: 1, name: 'Lot 1 — Intranet Passagers', detail: '', start: 1, end: 4, isHeader: true },
+            { lot: 1, name: 'Check-in & comptes passagers', detail: 'Cabine + code personnel', start: 1, end: 1 },
+            { lot: 1, name: 'Programme du sejour', detail: 'Activites, excursions', start: 1, end: 1 },
+            { lot: 1, name: 'Reservations activites', detail: 'Limite places, validation, notif', start: 2, end: 2 },
+            { lot: 1, name: 'Restauration', detail: 'Menus, commandes, panier', start: 2, end: 2 },
+            { lot: 1, name: 'Catalogue points de vente', detail: 'Boutique, bar, restaurant', start: 2, end: 2 },
+            { lot: 1, name: 'WiFi / Captive portal', detail: 'Achat & recharge carte internet', start: 3, end: 3 },
+            { lot: 1, name: 'Chat / Messagerie', detail: 'Passager → reception', start: 3, end: 3 },
+            { lot: 1, name: 'Suivi des depenses', detail: 'Historique conso, paiement auto', start: 3, end: 3 },
+            { lot: 1, name: 'TV cabine (optionnel)', detail: 'Page statique menu/activites', start: 4, end: 4 },
+            { lot: 1, name: 'Tests terrain a bord', detail: 'Corrections & ajustements', start: 4, end: 4 },
+            { lot: 1, name: 'Livraison Lot 1', detail: 'MVP passagers en production', start: 4, end: 4, milestone: true, milestoneMonth: 4 },
+
+            // Lot 2
+            { lot: 2, name: 'Lot 2 — Gestion Equipage', detail: '', start: 5, end: 6, isHeader: true },
+            { lot: 2, name: 'Embarquement / Debarquement', detail: 'Check-in/out iles, badges', start: 5, end: 5 },
+            { lot: 2, name: 'Comptes equipage', detail: 'Cabines, cartes, roles', start: 6, end: 6 },
+            { lot: 2, name: 'Securite maritime', detail: 'Muster stations, protocoles', start: 6, end: 6 },
+
+            // Lot 3
+            { lot: 3, name: 'Lot 3 — Maintenance / Ticketing', detail: '', start: 7, end: 8, isHeader: true },
+            { lot: 3, name: 'Creation de tickets', detail: 'Photo, description, localisation', start: 7, end: 7 },
+            { lot: 3, name: 'Pipeline de traitement', detail: 'Nouveau → en cours → traite', start: 7, end: 7 },
+            { lot: 3, name: 'Lien ticket → BDC', detail: 'Generation bon de commande', start: 8, end: 8 },
+            { lot: 3, name: 'Tests terrain Lots 2+3', detail: '', start: 8, end: 8 },
+            { lot: 3, name: 'Livraison Lots 2+3', detail: 'Equipage + Maintenance en prod', start: 8, end: 8, milestone: true, milestoneMonth: 8 },
+
+            // Lot 4
+            { lot: 4, name: 'Lot 4 — Bons de Commande', detail: '', start: 9, end: 10, isHeader: true },
+            { lot: 4, name: 'Workflow validation DAF/DG', detail: 'Creation → validation → envoi', start: 9, end: 9 },
+            { lot: 4, name: 'Budgets & audit', detail: 'Budget previsionnel, alertes', start: 10, end: 10 },
+            { lot: 4, name: 'Matching factures', detail: 'BDC ↔ facture, tracabilite', start: 10, end: 10 },
+            { lot: 4, name: 'Livraison Lot 4', detail: 'BDC en production', start: 10, end: 10, milestone: true, milestoneMonth: 10 },
+
+            // Lot 5
+            { lot: 5, name: 'Lot 5 — Points de Vente', detail: '', start: 11, end: 12, isHeader: true },
+            { lot: 5, name: 'Ventes a bord', detail: 'Facturation cabine & badge', start: 11, end: 11 },
+            { lot: 5, name: 'Stock / Provisions', detail: 'Suivi temps reel, integration IDT/CGI', start: 12, end: 12 },
+            { lot: 5, name: 'Livraison Lot 5', detail: 'PdV en production', start: 12, end: 12, milestone: true, milestoneMonth: 12 },
+
+            // Lot 6
+            { lot: 6, name: 'Lot 6 — Comptabilite', detail: '', start: 13, end: 15, isHeader: true },
+            { lot: 6, name: 'Module comptable', detail: 'Ecritures de vente', start: 13, end: 13 },
+            { lot: 6, name: 'Lien IDT/CGI & HABITU', detail: 'Transfert bidirectionnel, encaissements', start: 14, end: 14 },
+            { lot: 6, name: 'Tests finaux & formation', detail: 'Mise en prod complete', start: 15, end: 15 },
+            { lot: 6, name: 'Livraison finale', detail: 'ERP complet en production', start: 15, end: 15, milestone: true, milestoneMonth: 15 },
+        ];
+
+        const MONTH_NAMES = [
+            'Mars 2026', 'Avril 2026', 'Mai 2026', 'Juin 2026', 'Juillet 2026',
+            'Aout 2026', 'Septembre 2026', 'Octobre 2026', 'Novembre 2026',
+            'Decembre 2026', 'Janvier 2027', 'Fevrier 2027', 'Mars 2027',
+            'Avril 2027', 'Mai 2027', 'Juin 2027'
+        ];
+
+        const NUM_MONTHS = 16;
+
+        // ─── RENDER ─────────────────────────────────────────────
+        let activeLot = 'all';
+
+        function filterLot(lot) {
+            activeLot = lot;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderGantt();
+        }
+
+        function renderGantt() {
+            const body = document.getElementById('ganttBody');
+            body.innerHTML = '';
+
+            const filtered = activeLot === 'all'
+                ? TASKS
+                : TASKS.filter(t => t.lot === activeLot);
+
+            filtered.forEach(task => {
+                const tr = document.createElement('tr');
+                const lotInfo = LOTS[task.lot];
+
+                if (task.isHeader) {
+                    tr.className = 'lot-header';
+                    tr.setAttribute('data-lot', task.lot);
+                } else {
+                    tr.className = 'sub-task';
+                    tr.setAttribute('data-lot', task.lot);
+                }
+
+                // Name cell
+                const nameCell = document.createElement('td');
+                if (task.isHeader) {
+                    nameCell.innerHTML = `<span class="lot-badge" style="background:${lotInfo.color}">${lotInfo.label}</span>${task.name}`;
+                } else {
+                    nameCell.textContent = task.name;
+                }
+                tr.appendChild(nameCell);
+
+                // Detail cell
+                const detailCell = document.createElement('td');
+                detailCell.textContent = task.detail;
+                tr.appendChild(detailCell);
+
+                // Month cells
+                for (let m = 0; m < NUM_MONTHS; m++) {
+                    const td = document.createElement('td');
+                    td.className = 'bar-cell';
+
+                    if (task.milestone && m === task.milestoneMonth) {
+                        td.className = 'milestone-cell';
+                        td.innerHTML = '<div class="milestone"></div>';
+                        td.title = `Jalon: ${task.name}`;
+                    } else if (!task.milestone && !task.isHeader && m >= task.start && m <= task.end) {
+                        const bar = document.createElement('div');
+                        bar.className = 'gantt-bar';
+                        bar.style.background = lotInfo.color;
+
+                        // Tooltip
+                        bar.setAttribute('data-tooltip', `<strong>${task.name}</strong>${task.detail ? task.detail + '<br>' : ''}${MONTH_NAMES[task.start]}${task.start !== task.end ? ' → ' + MONTH_NAMES[task.end] : ''}<br>Lot ${task.lot} — ${lotInfo.label}`);
+                        bar.addEventListener('mouseenter', showTooltip);
+                        bar.addEventListener('mouseleave', hideTooltip);
+                        bar.addEventListener('mousemove', moveTooltip);
+
+                        td.appendChild(bar);
+                    } else if (task.isHeader && m >= task.start && m <= task.end) {
+                        const bar = document.createElement('div');
+                        bar.className = 'gantt-bar';
+                        bar.style.background = lotInfo.color;
+                        bar.style.opacity = '0.3';
+                        bar.style.height = '8px';
+                        bar.style.marginTop = '8px';
+                        td.appendChild(bar);
+                    }
+
+                    tr.appendChild(td);
+                }
+
+                body.appendChild(tr);
+            });
+        }
+
+        // ─── TOOLTIP ────────────────────────────────────────────
+        const tooltip = document.getElementById('tooltip');
+
+        function showTooltip(e) {
+            tooltip.innerHTML = e.target.getAttribute('data-tooltip');
+            tooltip.style.display = 'block';
+        }
+
+        function hideTooltip() {
+            tooltip.style.display = 'none';
+        }
+
+        function moveTooltip(e) {
+            tooltip.style.left = (e.clientX + 12) + 'px';
+            tooltip.style.top = (e.clientY - 10) + 'px';
+        }
+
+        // ─── INIT ───────────────────────────────────────────────
+        renderGantt();
+    </script>
+</body>
+</html>
